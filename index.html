@@ -1,26 +1,26 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tienda</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tienda Online</title>
 
-    <!-- PayPal SDK -->
-    <script src="https://www.paypal.com/sdk/js?client-id=TU_CLIENT_ID&currency=EUR"></script>
+<!-- PayPal SDK -->
+<script src="https://www.paypal.com/sdk/js?client-id=TU_CLIENT_ID&currency=EUR"></script>
 
-    <style>
-        body { margin:0; font-family: Arial; background:#f3f4f6; }
-        header { background:#111827; color:white; padding:1rem; text-align:center; }
-        .container { max-width:900px; margin:auto; padding:1rem; }
-        .grid { display:grid; gap:1rem; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
-        .card { background:white; padding:1rem; border-radius:10px; text-align:center; }
-        .card img { width:100%; border-radius:10px; }
-        .btn { background:#111827; color:white; border:none; padding:.5rem 1rem; border-radius:5px; cursor:pointer; margin-top:.5rem; }
-        .btn-danger { background:#dc2626; }
-        .carrito-box { background:white; padding:1rem; margin-top:2rem; border-radius:10px; }
-        .cart-item { display:flex; justify-content:space-between; align-items:center; padding:.5rem 0; border-bottom:1px solid #ddd; }
-        input[type=number] { width:50px; }
-    </style>
+<style>
+body { margin:0; font-family: Arial; background:#f3f4f6; }
+header { background:#111827; color:white; padding:1rem; text-align:center; }
+.container { max-width:900px; margin:auto; padding:1rem; }
+.grid { display:grid; gap:1rem; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
+.card { background:white; padding:1rem; border-radius:10px; text-align:center; }
+.card img { width:100%; border-radius:10px; }
+.btn { background:#111827; color:white; border:none; padding:.5rem 1rem; border-radius:5px; cursor:pointer; margin-top:.5rem; }
+.btn-danger { background:#dc2626; }
+.carrito-box { background:white; padding:1rem; margin-top:2rem; border-radius:10px; }
+.cart-item { display:flex; justify-content:space-between; align-items:center; padding:.5rem 0; border-bottom:1px solid #ddd; }
+input[type=number] { width:50px; }
+</style>
 </head>
 
 <body>
@@ -52,7 +52,7 @@
 /* -----------------------------
    CONFIGURACIÓN GOOGLE SHEETS
 ----------------------------- */
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycby8rtsFlxujbh77TkicHRmmtjK58u8DeOe93HHCeP5B3pSq0aE3MA8SsB2mvmQO-m_eTg/exec";
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxc1ke-34RVnj6ySCllHNo-l6PJM3eHFjTqR7JmdcU5p5EPNBKXT9RkEPhBSnax79ogPA/exec";
 
 /* -----------------------------
    DATOS DE PRODUCTOS
@@ -173,14 +173,20 @@ function checkoutCOD(){
         mode: "cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(pedido)
-    });
-
-    carrito = [];
-    saveCart();
-    mostrarCarrito();
-
-    document.getElementById("resultado").innerHTML =
-        "<h3 style='color:green;'>Pedido enviado correctamente. Te contactaremos pronto.</h3>";
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.status==='ok'){
+            carrito = [];
+            saveCart();
+            mostrarCarrito();
+            document.getElementById("resultado").innerHTML =
+                "<h3 style='color:green;'>Pedido enviado correctamente. Te contactaremos pronto.</h3>";
+        } else {
+            alert("Error al enviar el pedido: " + data.message);
+        }
+    })
+    .catch(err => alert("Error al conectar con Sheets: " + err));
 }
 
 /* -----------------------------
@@ -192,9 +198,3 @@ mostrarCarrito();
 
 </body>
 </html>
-
-
-
-
-
-
