@@ -170,7 +170,7 @@ function checkoutCOD(){
 
     fetch(GOOGLE_SHEET_URL, {
         method: "POST",
-        mode: "no-cors",
+        mode: "cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(pedido)
     });
