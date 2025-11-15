@@ -1,19 +1,204 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="es">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tienda GitHub Pages</title>
-</head>
-
-<body>
-    <div id="root"></div>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda Simple</title>
 
     <!-- PayPal SDK -->
     <script src="https://www.paypal.com/sdk/js?client-id=REPLACE_WITH_PAYPAL_CLIENT_ID&currency=EUR"></script>
 
-    <script type="module" src="/src/main.jsx"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f3f4f6;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            padding: 1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .card {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .card img {
+            width: 100%;
+            border-radius: 10px;
+        }
+
+        .btn {
+            background: #111827;
+            color: white;
+            border: none;
+            padding: .5rem .8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: .5rem;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+        }
+
+        .carrito-box {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 2rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, .1);
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: .5rem;
+            border-bottom: 1px solid #ddd;
+        }
+
+        input[type=number] {
+            width: 50px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Tienda Simple</h1>
+    </header>
+
+    <div class="container">
+
+        <h2>Productos</h2>
+        <div id="productos" class="grid"></div>
+
+        <div class="carrito-box">
+            <h2>Carrito</h2>
+            <div id="carrito"></div>
+            <p><strong>Total:</strong> <span id="total">0</span> €</p>
+            <button class="btn" onclick="checkoutPayPal()">Pagar con PayPal</button>
+            <button class="btn btn-danger" onclick="checkoutCOD()">Contra reembolso</button>
+            <div id="paypal-buttons"></div>
+        </div>
+
+        <div id="resultado" style="margin-top:1rem;"></div>
+
+    </div>
+
+    <script>
+        // Productos de ejemplo
+        const productos = [
+            { id: "p1", nombre: "Camiseta", precio: 19.99, img: "https://via.placeholder.com/240x160?text=Camiseta" },
+            { id: "p2", nombre: "Taza", precio: 9.50, img: "https://via.placeholder.com/240x160?text=Taza" },
+            { id: "p3", nombre: "Pegatina", precio: 2.50, img: "https://via.placeholder.com/240x160?text=Pegatina" }
+        ];
+
+        // Render productos
+        function mostrarProductos() {
+            const cont = document.getElementById("productos");
+            cont.innerHTML = "";
+            productos.forEach(p => {
+                cont.innerHTML += `
+        <div class="card">
+            <img src="${p.img}">
+            <h3>${p.nombre}</h3>
+            <p>${p.precio} €</p>
+            <button class="btn" onclick="addToCart('${p.id}')">Añadir al carrito</button>
+        </div>`;
+            });
+        }
+
+        // Carrito
+        let carrito = JSON.parse(localStorage.getItem("carrito") || "[]");
+
+        function saveCart() { localStorage.setItem("carrito", JSON.stringify(carrito)); }
+
+        function addToCart(id) {
+            const prod = productos.find(p => p.id === id);
+            const existe = carrito.find(p => p.id === id);
+            if (existe) existe.cantidad++;
+            else carrito.push({ ...prod, cantidad: 1 });
+            saveCart(); mostrarCarrito();
+        }
+
+        function removeFromCart(id) {
+            carrito = carrito.filter(p => p.id !== id);
+            saveCart(); mostrarCarrito();
+        }
+
+        function updateQty(id, qty) {
+            qty = parseInt(qty);
+            if (qty <= 0) return removeFromCart(id);
+            carrito = carrito.map(p => p.id === id ? { ...p, cantidad: qty } : p);
+            saveCart(); mostrarCarrito();
+        }
+
+        function mostrarCarrito() {
+            const cont = document.getElementById("carrito");
+            cont.innerHTML = "";
+            if (carrito.length === 0) { cont.innerHTML = "<p>Carrito vacío</p>"; }
+            carrito.forEach(item => {
+                cont.innerHTML += `
+        <div class="cart-item">
+            <span>${item.nombre} — ${item.precio} €</span>
+            <input type="number" min="1" value="${item.cantidad}" onchange="updateQty('${item.id}', this.value)">
+            <button class="btn btn-danger" onclick="removeFromCart('${item.id}')">X</button>
+        </div>`;
+            });
+            document.getElementById("total").innerText = total().toFixed(2);
+        }
+
+        function total() { return carrito.reduce((s, p) => s + p.precio * p.cantidad, 0); }
+
+        // Pago PayPal
+        function checkoutPayPal() {
+            document.getElementById("paypal-buttons").innerHTML = "";
+            paypal.Buttons({
+                createOrder: (data, actions) => actions.order.create({
+                    purchase_units: [{ amount: { value: total().toFixed(2) } }]
+                }),
+                onApprove: async (data, actions) => {
+                    await actions.order.capture();
+                    carrito = []; saveCart(); mostrarCarrito();
+                    document.getElementById("resultado").innerHTML = "<div class='card'><h3>Pago completado con PayPal</h3></div>";
+                }
+            }).render("#paypal-buttons");
+        }
+
+        // Pago contra reembolso
+        function checkoutCOD() {
+            const pedido = { id: "COD-" + Date.now(), items: carrito, total: total(), fecha: new Date().toISOString() };
+            carrito = []; saveCart(); mostrarCarrito();
+            document.getElementById("resultado").innerHTML = "<div class='card' style='background:#d1fae5;'><h3>Pedido contra reembolso generado</h3><pre>" + JSON.stringify(pedido, null, 2) + "</pre></div>";
+        }
+
+        // Inicialización
+        mostrarProductos();
+        mostrarCarrito();
+    </script>
+
 </body>
 
 </html>
